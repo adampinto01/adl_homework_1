@@ -26,17 +26,12 @@ class LoRALinear(HalfLinear):
         """
         super().__init__(in_features, out_features, bias)
 
-        # super().__init__ already froze the fp16 base weight/bias. The adapters are created afterwards,
-        # so they stay trainable. They are kept in float32 for stable training.
         self.lora_a = torch.nn.Linear(in_features, lora_dim, bias=False, dtype=torch.float32)
         self.lora_b = torch.nn.Linear(lora_dim, out_features, bias=False, dtype=torch.float32)
-        # lora_a keeps nn.Linear's default random init; lora_b starts at zero so the adapter adds
-        # nothing until it is trained (output initially matches HalfBigNet exactly).
+
         torch.nn.init.zeros_(self.lora_b.weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # HalfLinear.forward takes and returns x.dtype (float32), whichever of its forward variants is
-        # active (fp32 upcast locally, or fp16 compute on a GPU), so no extra casting is needed here.
         return super().forward(x) + self.lora_b(self.lora_a(x))
 
 

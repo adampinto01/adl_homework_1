@@ -75,15 +75,13 @@ class Linear4Bit(torch.nn.Module):
             # Load the original weights and remove them from the state_dict (mark them as loaded)
             weight = state_dict[f"{prefix}weight"]  # noqa: F841
             del state_dict[f"{prefix}weight"]
-            # The quantizer expects a 1D tensor, so flatten the (out, in) weight first.
-            # copy_ writes into the existing buffers, keeping their device and registration intact.
+
             weight_q4, weight_norm = block_quantize_4bit(weight.flatten(), self._group_size)
             self.weight_q4.copy_(weight_q4)
             self.weight_norm.copy_(weight_norm)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            # Rebuild the full fp32 weight on the fly; it is freed again after the layer runs.
             weight = block_dequantize_4bit(self.weight_q4, self.weight_norm).view(self._shape)
             return torch.nn.functional.linear(x, weight, self.bias)
 

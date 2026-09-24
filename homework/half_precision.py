@@ -23,14 +23,7 @@ class HalfLinear(torch.nn.Linear):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Hint: Use the .to method to cast a tensor to a different dtype (i.e. torch.float16 or x.dtype)
         # The input and output should be of x.dtype = torch.float32
-        # Weights are stored in fp16 but upcast for the matmul: fp16 matmuls are very slow on CPU,
-        # and the temporary fp32 copy is freed right after, so stored memory is unchanged.
-        bias = self.bias.to(x.dtype) if self.bias is not None else None
-        return torch.nn.functional.linear(x, self.weight.to(x.dtype), bias)
-
-        # Original fp16-compute version (as the hint intends). Fast on a CUDA GPU (e.g. Colab GPU runtime),
-        # but times out the CPU memory test. To use it, comment out the two lines above and uncomment this:
-        # return torch.nn.functional.linear(x.to(self.weight.dtype), self.weight, self.bias).to(x.dtype)
+        return torch.nn.functional.linear(x.to(self.weight.dtype), self.weight, self.bias).to(x.dtype)
 
 
 class HalfBigNet(torch.nn.Module):

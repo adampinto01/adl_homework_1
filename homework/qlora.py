@@ -18,18 +18,11 @@ class QLoRALinear(Linear4Bit):
         super().__init__(in_features, out_features, bias, group_size)
         self.requires_grad_(False)
 
-        # The adapters are created after requires_grad_(False) above, so they stay trainable.
-        # They are kept in float32 for stable training.
         self.lora_a = torch.nn.Linear(in_features, lora_dim, bias=False, dtype=torch.float32)
         self.lora_b = torch.nn.Linear(lora_dim, out_features, bias=False, dtype=torch.float32)
-        # lora_a keeps nn.Linear's default random init; lora_b starts at zero so the adapter adds
-        # nothing until it is trained (output initially matches BigNet4Bit exactly).
         torch.nn.init.zeros_(self.lora_b.weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Linear4Bit.forward runs entirely under no_grad, which would cut the gradient path back through
-        # this layer to the adapters of earlier layers. Instead, only the dequantization (a constant) is
-        # done under no_grad, and the linear op runs with autograd so gradients flow through x.
         with torch.no_grad():
             weight = block_dequantize_4bit(self.weight_q4, self.weight_norm).view(self._shape)
         return torch.nn.functional.linear(x, weight, self.bias) + self.lora_b(self.lora_a(x))
