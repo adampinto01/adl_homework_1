@@ -96,11 +96,11 @@ class BigNet4Bit(torch.nn.Module):
         def __init__(self, channels):
             super().__init__()
             self.model = torch.nn.Sequential(
-                Linear4Bit(channels, channels),
+                Linear4Bit(channels, channels, group_size=8),
                 torch.nn.ReLU(),
-                Linear4Bit(channels, channels),
+                Linear4Bit(channels, channels, group_size=8),
                 torch.nn.ReLU(),
-                Linear4Bit(channels, channels),
+                Linear4Bit(channels, channels, group_size=8),
             )
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
